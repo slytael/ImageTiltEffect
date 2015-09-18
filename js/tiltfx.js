@@ -175,10 +175,83 @@
 		// add it to the DOM and remove original img element.
 		this.el.parentNode.insertBefore(this.tiltWrapper, this.el);
 		this.el.parentNode.removeChild(this.el);
+		this.eventParent = this.tiltWrapper.parentNode.parentNode
 
 		// tiltWrapper properties: width/height/left/top
 		this.view = { width : this.tiltWrapper.offsetWidth, height : this.tiltWrapper.offsetHeight };
 	};
+
+	/**
+	 * Pause the tilt effect
+	 */
+	TiltFx.prototype.pause = function()
+	{
+		this.untilt()
+		this._paused = true
+	}
+
+	/**
+	 * Resume the tilt effect
+	 */
+	TiltFx.prototype.resume = function()
+	{
+		this._paused = false
+	}
+
+	TiltFx.prototype.untilt = function(ev)
+	{
+		if (this._paused)
+			return
+
+		var self = this
+		var moveOpts = self.options.movement
+
+		setTimeout(function() {
+			for(var i = 0, len = self.imgElems.length; i < len; ++i) {
+				var el = self.imgElems[i];
+				el.style.WebkitTransform = 'perspective(' + moveOpts.perspective + 'px) translate3d(0,0,0) rotate3d(1,1,1,0deg)';
+				el.style.transform = 'perspective(' + moveOpts.perspective + 'px) translate3d(0,0,0) rotate3d(1,1,1,0deg)';
+			}
+		}, 60);
+
+	}
+
+	TiltFx.prototype.tilt = function(ev)
+	{
+		if (this._paused)
+			return
+
+		var self = this
+		var moveOpts = self.options.movement
+
+		requestAnimationFrame(function() {
+			// mouse position relative to the document.
+			var mousepos = getMousePos(ev),
+			// document scrolls.
+				docScrolls = {left : document.body.scrollLeft + document.documentElement.scrollLeft, top : document.body.scrollTop + document.documentElement.scrollTop},
+				bounds = self.tiltWrapper.getBoundingClientRect(),
+			// mouse position relative to the main element (tiltWrapper).
+				relmousepos = {
+					x : mousepos.x - bounds.left - docScrolls.left,
+					y : mousepos.y - bounds.top - docScrolls.top
+				};
+
+			// configure the movement for each image element.
+			for(var i = 0, len = self.imgElems.length; i < len; ++i) {
+				var el = self.imgElems[i],
+					rotX = moveOpts.rotateX ? 2 * ((i+1)*moveOpts.rotateX/self.options.extraImgs) / self.view.height * relmousepos.y - ((i+1)*moveOpts.rotateX/self.options.extraImgs) : 0,
+					rotY = moveOpts.rotateY ? 2 * ((i+1)*moveOpts.rotateY/self.options.extraImgs) / self.view.width * relmousepos.x - ((i+1)*moveOpts.rotateY/self.options.extraImgs) : 0,
+					rotZ = moveOpts.rotateZ ? 2 * ((i+1)*moveOpts.rotateZ/self.options.extraImgs) / self.view.width * relmousepos.x - ((i+1)*moveOpts.rotateZ/self.options.extraImgs) : 0,
+					transX = moveOpts.translateX ? 2 * ((i+1)*moveOpts.translateX/self.options.extraImgs) / self.view.width * relmousepos.x - ((i+1)*moveOpts.translateX/self.options.extraImgs) : 0,
+					transY = moveOpts.translateY ? 2 * ((i+1)*moveOpts.translateY/self.options.extraImgs) / self.view.height * relmousepos.y - ((i+1)*moveOpts.translateY/self.options.extraImgs) : 0,
+					transZ = moveOpts.translateZ ? 2 * ((i+1)*moveOpts.translateZ/self.options.extraImgs) / self.view.height * relmousepos.y - ((i+1)*moveOpts.translateZ/self.options.extraImgs) : 0;
+
+				el.style.WebkitTransform = 'perspective(' + moveOpts.perspective + 'px) translate3d(' + transX + 'px,' + transY + 'px,' + transZ + 'px) rotate3d(1,0,0,' + rotX + 'deg) rotate3d(0,1,0,' + rotY + 'deg) rotate3d(0,0,1,' + rotZ + 'deg)';
+				el.style.transform = 'perspective(' + moveOpts.perspective + 'px) translate3d(' + transX + 'px,' + transY + 'px,' + transZ + 'px) rotate3d(1,0,0,' + rotX + 'deg) rotate3d(0,1,0,' + rotY + 'deg) rotate3d(0,0,1,' + rotZ + 'deg)';
+			}
+		});
+	}
+
 
 	/**
 	 * Initialize the events on the main wrapper.
@@ -188,62 +261,11 @@
 			moveOpts = self.options.movement;
 
 		// mousemove event..
-		this.tiltWrapper.parentNode.parentNode.addEventListener('mousemove', function(ev) {
-			requestAnimationFrame(function() {
-					// mouse position relative to the document.
-				var mousepos = getMousePos(ev),
-					// document scrolls.
-					docScrolls = {left : document.body.scrollLeft + document.documentElement.scrollLeft, top : document.body.scrollTop + document.documentElement.scrollTop},
-					bounds = self.tiltWrapper.getBoundingClientRect(),
-					// mouse position relative to the main element (tiltWrapper).
-					relmousepos = {
-						x : mousepos.x - bounds.left - docScrolls.left,
-						y : mousepos.y - bounds.top - docScrolls.top
-					};
-
-				// configure the movement for each image element.
-				for(var i = 0, len = self.imgElems.length; i < len; ++i) {
-					var el = self.imgElems[i],
-						rotX = moveOpts.rotateX ? 2 * ((i+1)*moveOpts.rotateX/self.options.extraImgs) / self.view.height * relmousepos.y - ((i+1)*moveOpts.rotateX/self.options.extraImgs) : 0,
-						rotY = moveOpts.rotateY ? 2 * ((i+1)*moveOpts.rotateY/self.options.extraImgs) / self.view.width * relmousepos.x - ((i+1)*moveOpts.rotateY/self.options.extraImgs) : 0,
-						rotZ = moveOpts.rotateZ ? 2 * ((i+1)*moveOpts.rotateZ/self.options.extraImgs) / self.view.width * relmousepos.x - ((i+1)*moveOpts.rotateZ/self.options.extraImgs) : 0,
-						transX = moveOpts.translateX ? 2 * ((i+1)*moveOpts.translateX/self.options.extraImgs) / self.view.width * relmousepos.x - ((i+1)*moveOpts.translateX/self.options.extraImgs) : 0,
-						transY = moveOpts.translateY ? 2 * ((i+1)*moveOpts.translateY/self.options.extraImgs) / self.view.height * relmousepos.y - ((i+1)*moveOpts.translateY/self.options.extraImgs) : 0,
-						transZ = moveOpts.translateZ ? 2 * ((i+1)*moveOpts.translateZ/self.options.extraImgs) / self.view.height * relmousepos.y - ((i+1)*moveOpts.translateZ/self.options.extraImgs) : 0;
-
-					el.style.WebkitTransform = 'perspective(' + moveOpts.perspective + 'px) translate3d(' + transX + 'px,' + transY + 'px,' + transZ + 'px) rotate3d(1,0,0,' + rotX + 'deg) rotate3d(0,1,0,' + rotY + 'deg) rotate3d(0,0,1,' + rotZ + 'deg)';
-					el.style.transform = 'perspective(' + moveOpts.perspective + 'px) translate3d(' + transX + 'px,' + transY + 'px,' + transZ + 'px) rotate3d(1,0,0,' + rotX + 'deg) rotate3d(0,1,0,' + rotY + 'deg) rotate3d(0,0,1,' + rotZ + 'deg)';
-				}
-			});
-		});
+		this.eventParent.addEventListener('mousemove', this.tilt.bind(this));
 
 		// reset all when mouse leaves the main wrapper.
-		this.tiltWrapper.parentNode.parentNode.addEventListener('mouseleave', function(ev) {
-			setTimeout(function() {
-			for(var i = 0, len = self.imgElems.length; i < len; ++i) {
-				var el = self.imgElems[i];
-				el.style.WebkitTransform = 'perspective(' + moveOpts.perspective + 'px) translate3d(0,0,0) rotate3d(1,1,1,0deg)';
-				el.style.transform = 'perspective(' + moveOpts.perspective + 'px) translate3d(0,0,0) rotate3d(1,1,1,0deg)';
-			}	
-			}, 60);
-			
-		});
-
-		// window resize
-		window.addEventListener('resize', throttle(function(ev) {
-			// recalculate tiltWrapper properties: width/height/left/top
-			self.view = { width : self.tiltWrapper.offsetWidth, height : self.tiltWrapper.offsetHeight };
-		}, 50));
+		this.eventParent.addEventListener('mouseleave', this.untilt.bind(this));
 	};
-
-	function init() {
-		// search for imgs with the class "tilt-effect"
-		[].slice.call(document.querySelectorAll('img.tilt-effect')).forEach(function(img) {
-			new TiltFx(img, JSON.parse(img.getAttribute('data-tilt-options')));
-		});
-	}
-
-	init();
 
 	window.TiltFx = TiltFx;
 
