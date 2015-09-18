@@ -188,7 +188,7 @@
 			moveOpts = self.options.movement;
 
 		// mousemove event..
-		this.tiltWrapper.addEventListener('mousemove', function(ev) {
+		this.tiltWrapper.parentNode.parentNode.addEventListener('mousemove', function(ev) {
 			requestAnimationFrame(function() {
 					// mouse position relative to the document.
 				var mousepos = getMousePos(ev),
@@ -218,7 +218,7 @@
 		});
 
 		// reset all when mouse leaves the main wrapper.
-		this.tiltWrapper.addEventListener('mouseleave', function(ev) {
+		this.tiltWrapper.parentNode.parentNode.addEventListener('mouseleave', function(ev) {
 			setTimeout(function() {
 			for(var i = 0, len = self.imgElems.length; i < len; ++i) {
 				var el = self.imgElems[i];
